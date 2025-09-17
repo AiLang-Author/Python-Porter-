@@ -1,0 +1,461 @@
+# aimacro_examples.aimacro
+# Complete example programs showing AIMacro capabilities
+# These examples demonstrate Python-to-AILang translation
+
+# ============================================================================
+# EXAMPLE 1: Basic Mathematical Operations
+# ============================================================================
+
+def factorial(n):
+    """Calculate factorial using iteration"""
+    if n <= 1:
+        return 1;
+    end;
+    
+    result = 1;
+    i = 2;
+    
+    while i <= n:
+        result = result * i;
+        i = i + 1;
+    end;
+    
+    return result;
+end;
+
+def fibonacci(n):
+    """Calculate nth Fibonacci number"""
+    if n <= 0:
+        return 0;
+    elif n == 1:
+        return 1;
+    end;
+    
+    prev = 0;
+    curr = 1;
+    
+    for i in range(2, n + 1):
+        temp = prev + curr;
+        prev = curr;
+        curr = temp;
+    end;
+    
+    return curr;
+end;
+
+# ============================================================================
+# EXAMPLE 2: Array/List Operations
+# ============================================================================
+
+def bubble_sort(arr):
+    """Sort array using bubble sort"""
+    n = len(arr);
+    
+    for i in range(n):
+        for j in range(0, n - i - 1):
+            if arr[j] > arr[j + 1]:
+                # Swap elements
+                temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            end;
+        end;
+    end;
+    
+    return arr;
+end;
+
+def find_max(numbers):
+    """Find maximum value in array"""
+    if len(numbers) == 0:
+        return None;
+    end;
+    
+    max_val = numbers[0];
+    
+    for num in numbers:
+        if num > max_val:
+            max_val = num;
+        end;
+    end;
+    
+    return max_val;
+end;
+
+def array_statistics(data):
+    """Calculate basic statistics for array"""
+    n = len(data);
+    
+    if n == 0:
+        return {"count": 0, "sum": 0, "average": 0, "min": 0, "max": 0};
+    end;
+    
+    total = sum(data);
+    average = total / n;
+    minimum = min(data);
+    maximum = max(data);
+    
+    return {
+        "count": n,
+        "sum": total,
+        "average": average,
+        "min": minimum,
+        "max": maximum
+    };
+end;
+
+# ============================================================================
+# EXAMPLE 3: String Processing
+# ============================================================================
+
+def reverse_string(s):
+    """Reverse a string"""
+    result = "";
+    
+    for char in s:
+        result = char + result;
+    end;
+    
+    return result;
+end;
+
+def count_words(text):
+    """Count words in text"""
+    words = text.split(" ");
+    return len(words);
+end;
+
+def is_palindrome(s):
+    """Check if string is palindrome"""
+    # Remove spaces and convert to lower
+    clean = s.strip().lower();
+    
+    left = 0;
+    right = len(clean) - 1;
+    
+    while left < right:
+        if clean[left] != clean[right]:
+            return False;
+        end;
+        left = left + 1;
+        right = right - 1;
+    end;
+    
+    return True;
+end;
+
+# ============================================================================
+# EXAMPLE 4: File Operations (with AILang escape)
+# ============================================================================
+
+def write_data_to_file(filename, data):
+    """Write data to file using mixed syntax"""
+    # Open file using Python-style
+    file = open(filename, "w");
+    
+    # Write header
+    file.write("Data Output\n");
+    file.write("===========\n");
+    
+    # Write each item
+    for item in data:
+        file.write(str(item) + "\n");
+    end;
+    
+    # Use AILang for low-level flush
+    ailang {
+        FileFlush(file)
+        FileClose(file)
+    };
+    
+    return True;
+end;
+
+def read_numbers_from_file(filename):
+    """Read numbers from file"""
+    file = open(filename, "r");
+    numbers = [];
+    
+    # Read line by line
+    while True:
+        line = file.readline();
+        
+        if line == "":
+            break;
+        end;
+        
+        # Convert to number and add to list
+        num = int(line.strip());
+        numbers.append(num);
+    end;
+    
+    file.close();
+    return numbers;
+end;
+
+# ============================================================================
+# EXAMPLE 5: Advanced Control Flow
+# ============================================================================
+
+def binary_search(arr, target):
+    """Binary search implementation"""
+    left = 0;
+    right = len(arr) - 1;
+    
+    while left <= right:
+        mid = (left + right) / 2;
+        
+        if arr[mid] == target:
+            return mid;
+        elif arr[mid] < target:
+            left = mid + 1;
+        else:
+            right = mid - 1;
+        end;
+    end;
+    
+    return -1;  # Not found
+end;
+
+def matrix_multiply(a, b):
+    """Multiply two matrices"""
+    rows_a = len(a);
+    cols_a = len(a[0]);
+    rows_b = len(b);
+    cols_b = len(b[0]);
+    
+    if cols_a != rows_b:
+        print("Invalid matrix dimensions");
+        return None;
+    end;
+    
+    # Create result matrix
+    result = [];
+    
+    for i in range(rows_a):
+        row = [];
+        for j in range(cols_b):
+            sum = 0;
+            for k in range(cols_a):
+                sum = sum + a[i][k] * b[k][j];
+            end;
+            row.append(sum);
+        end;
+        result.append(row);
+    end;
+    
+    return result;
+end;
+
+# ============================================================================
+# EXAMPLE 6: System Programming (Heavy AILang use)
+# ============================================================================
+
+def allocate_buffer(size):
+    """Allocate memory buffer with safety checks"""
+    if size <= 0:
+        print("Invalid size");
+        return None;
+    end;
+    
+    # Drop to AILang for memory operations
+    ailang {
+        buffer = Allocate(size)
+        
+        # Check allocation success
+        IfCondition EqualTo(buffer, 0) ThenBlock {
+            PrintMessage("Allocation failed")
+            ReturnValue(0)
+        }
+        
+        # Initialize buffer
+        FillMemory(buffer, 0, size)
+    };
+    
+    return buffer;
+end;
+
+def network_server():
+    """Simple network server example"""
+    port = 8080;
+    
+    print(f"Starting server on port {port}");
+    
+    # Use AILang for socket operations
+    ailang {
+        socket = SocketCreate()
+        SocketBind(socket, port)
+        SocketListen(socket, 10)
+        
+        WhileLoop True {
+            client = SocketAccept(socket)
+            
+            # Read request
+            buffer = Allocate(1024)
+            bytes_read = SocketRead(client, buffer, 1024)
+            
+            # Send response
+            response = "HTTP/1.1 200 OK\r\n\r\nHello from AIMacro!"
+            SocketWrite(client, response, StringLength(response))
+            
+            SocketClose(client)
+            Deallocate(buffer, 1024)
+        }
+    };
+    
+    return 0;
+end;
+
+# ============================================================================
+# EXAMPLE 7: Functional Programming Style
+# ============================================================================
+
+def map_reduce_example():
+    """Demonstrate map and reduce patterns"""
+    numbers = range(1, 11);
+    
+    # Square all numbers
+    squared = map(lambda x: x * x, numbers);
+    
+    # Filter even squares
+    even_squares = filter(lambda x: x % 2 == 0, squared);
+    
+    # Sum them up
+    total = sum(even_squares);
+    
+    print(f"Sum of even squares from 1-10: {total}");
+    
+    return total;
+end;
+
+def compose_functions(f, g):
+    """Function composition: (f ∘ g)(x) = f(g(x))"""
+    return lambda x: f(g(x));
+end;
+
+def curry_add(x):
+    """Curried addition function"""
+    return lambda y: x + y;
+end;
+
+# ============================================================================
+# EXAMPLE 8: Class-like Structures (using functions)
+# ============================================================================
+
+def create_person(name, age):
+    """Create a person 'object' using dictionary"""
+    return {
+        "name": name,
+        "age": age,
+        "id": generate_id()
+    };
+end;
+
+def person_get_name(person):
+    """Get person's name"""
+    return person["name"];
+end;
+
+def person_set_age(person, new_age):
+    """Set person's age"""
+    person["age"] = new_age;
+    return person;
+end;
+
+def person_to_string(person):
+    """Convert person to string representation"""
+    return f"Person(name={person['name']}, age={person['age']})";
+end;
+
+# ============================================================================
+# EXAMPLE 9: Error Handling Patterns
+# ============================================================================
+
+def safe_divide(a, b):
+    """Safe division with error checking"""
+    if b == 0:
+        print("Error: Division by zero");
+        return None;
+    end;
+    
+    return a / b;
+end;
+
+def validate_input(value, min_val, max_val):
+    """Validate input is within range"""
+    if value < min_val or value > max_val:
+        print(f"Value {value} out of range [{min_val}, {max_val}]");
+        return False;
+    end;
+    
+    return True;
+end;
+
+# ============================================================================
+# EXAMPLE 10: Main Program
+# ============================================================================
+
+def main():
+    """Main entry point demonstrating various features"""
+    print("AIMacro Example Program");
+    print("======================");
+    
+    # Test math functions
+    print("\n1. Math Functions:");
+    n = 5;
+    print(f"Factorial of {n}: {factorial(n)}");
+    print(f"Fibonacci #{n}: {fibonacci(n)}");
+    
+    # Test array operations
+    print("\n2. Array Operations:");
+    data = [64, 34, 25, 12, 22, 11, 90];
+    print(f"Original: {data}");
+    sorted_data = bubble_sort(data);
+    print(f"Sorted: {sorted_data}");
+    
+    stats = array_statistics(data);
+    print(f"Statistics: {stats}");
+    
+    # Test string operations
+    print("\n3. String Operations:");
+    text = "hello world";
+    print(f"Original: '{text}'");
+    print(f"Reversed: '{reverse_string(text)}'");
+    print(f"Word count: {count_words(text)}");
+    
+    test_palindrome = "racecar";
+    print(f"Is '{test_palindrome}' a palindrome? {is_palindrome(test_palindrome)}");
+    
+    # Test functional programming
+    print("\n4. Functional Programming:");
+    result = map_reduce_example();
+    
+    # Test currying
+    add_five = curry_add(5);
+    print(f"5 + 10 = {add_five(10)}");
+    
+    # Direct AILang for performance-critical section
+    print("\n5. Performance Section:");
+    ailang {
+        // Allocate large buffer
+        large_buffer = Allocate(1048576)  // 1MB
+        
+        // Do something compute-intensive
+        i = 0
+        WhileLoop LessThan(i, 1000000) {
+            StoreByte(large_buffer, Modulo(i, 1048576), i)
+            i = Add(i, 1)
+        }
+        
+        // Clean up
+        Deallocate(large_buffer, 1048576)
+        
+        PrintMessage("Performance section complete")
+    };
+    
+    print("\nProgram complete!");
+    return 0;
+end;
+
+# Run main if this is the entry point
+main();
