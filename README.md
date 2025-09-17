@@ -1,3 +1,6 @@
+IN DEVELOPMENT UNTESTED All CODE IS PURE PROTOYPING
+-----
+
 # 🚀 AIMacro: Python Without Tears
 
 > **Write Python. Compile to Native. Never Debug Whitespace Again.**
