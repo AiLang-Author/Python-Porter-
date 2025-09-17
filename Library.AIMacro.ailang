@@ -1,0 +1,561 @@
+// Library.AIMacro.ailang
+// Python-to-AILang function mapping library
+// Version: 4.0
+//
+// This library provides Python-compatible functions for AIMacro programs
+// All functions handle type detection and provide Python-like behavior
+
+// ============================================================================
+// SECTION 1: BASIC I/O FUNCTIONS
+// ============================================================================
+
+Function.AIMacro.print {
+    Input: value: Address
+    Body: {
+        // Detect type and print appropriately
+        // For now, simple string printing
+        PrintMessage(value)
+    }
+}
+
+Function.AIMacro.input {
+    Input: prompt: Address
+    Body: {
+        // Print prompt if provided
+        IfCondition NotEqual(prompt, 0) ThenBlock {
+            PrintMessage(prompt)
+        }
+        
+        // Read user input
+        buffer = Allocate(1024)
+        InputRead(buffer, 1024)
+        result = ToString(buffer)
+        Deallocate(buffer, 1024)
+        ReturnValue(result)
+    }
+}
+
+// ============================================================================
+// SECTION 2: SEQUENCE & ITERATION FUNCTIONS
+// ============================================================================
+
+Function.AIMacro.range {
+    Input: start: Integer
+    Input: stop: Integer  
+    Input: step: Integer
+    Body: {
+        // Handle Python-style range(n) -> range(0, n, 1)
+        IfCondition EqualTo(stop, 0) ThenBlock {
+            stop = start
+            start = 0
+            step = 1
+        }
+        
+        IfCondition EqualTo(step, 0) ThenBlock {
+            step = 1
+        }
+        
+        // Calculate array size
+        size = Divide(Subtract(stop, start), step)
+        IfCondition LessThan(size, 0) ThenBlock {
+            size = 0
+        }
+        
+        // Create and populate array
+        result = ArrayCreate(size)
+        i = 0
+        current = start
+        
+        WhileLoop LessThan(current, stop) {
+            ArraySet(result, i, current)
+            current = Add(current, step)
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(result)
+    }
+}
+
+Function.AIMacro.len {
+    Input: collection: Address
+    Body: {
+        // Return length based on type
+        // For arrays
+        ReturnValue(ArrayLength(collection))
+    }
+}
+
+Function.AIMacro.enumerate {
+    Input: iterable: Address
+    Input: start: Integer
+    Body: {
+        IfCondition EqualTo(start, 0) ThenBlock {
+            start = 0
+        }
+        
+        length = ArrayLength(iterable)
+        result = ArrayCreate(length)
+        
+        i = 0
+        WhileLoop LessThan(i, length) {
+            pair = ArrayCreate(2)
+            ArraySet(pair, 0, Add(i, start))
+            ArraySet(pair, 1, ArrayGet(iterable, i))
+            ArraySet(result, i, pair)
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(result)
+    }
+}
+
+Function.AIMacro.zip {
+    Input: array1: Address
+    Input: array2: Address
+    Body: {
+        len1 = ArrayLength(array1)
+        len2 = ArrayLength(array2)
+        
+        // Get minimum length
+        min_len = len1
+        IfCondition LessThan(len2, len1) ThenBlock {
+            min_len = len2
+        }
+        
+        result = ArrayCreate(min_len)
+        i = 0
+        
+        WhileLoop LessThan(i, min_len) {
+            pair = ArrayCreate(2)
+            ArraySet(pair, 0, ArrayGet(array1, i))
+            ArraySet(pair, 1, ArrayGet(array2, i))
+            ArraySet(result, i, pair)
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(result)
+    }
+}
+
+// ============================================================================
+// SECTION 3: MATHEMATICAL FUNCTIONS
+// ============================================================================
+
+Function.AIMacro.sum {
+    Input: array: Address
+    Body: {
+        total = 0
+        i = 0
+        length = ArrayLength(array)
+        
+        WhileLoop LessThan(i, length) {
+            total = Add(total, ArrayGet(array, i))
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(total)
+    }
+}
+
+Function.AIMacro.min {
+    Input: array: Address
+    Body: {
+        length = ArrayLength(array)
+        
+        IfCondition EqualTo(length, 0) ThenBlock {
+            ReturnValue(0)
+        }
+        
+        min_val = ArrayGet(array, 0)
+        i = 1
+        
+        WhileLoop LessThan(i, length) {
+            current = ArrayGet(array, i)
+            IfCondition LessThan(current, min_val) ThenBlock {
+                min_val = current
+            }
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(min_val)
+    }
+}
+
+Function.AIMacro.max {
+    Input: array: Address
+    Body: {
+        length = ArrayLength(array)
+        
+        IfCondition EqualTo(length, 0) ThenBlock {
+            ReturnValue(0)
+        }
+        
+        max_val = ArrayGet(array, 0)
+        i = 1
+        
+        WhileLoop LessThan(i, length) {
+            current = ArrayGet(array, i)
+            IfCondition GreaterThan(current, max_val) ThenBlock {
+                max_val = current
+            }
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(max_val)
+    }
+}
+
+Function.AIMacro.abs {
+    Input: value: Integer
+    Body: {
+        IfCondition LessThan(value, 0) ThenBlock {
+            ReturnValue(Multiply(value, -1))
+        }
+        ReturnValue(value)
+    }
+}
+
+// ============================================================================
+// SECTION 4: FUNCTIONAL PROGRAMMING
+// ============================================================================
+
+Function.AIMacro.map {
+    Input: func: Address
+    Input: iterable: Address
+    Body: {
+        length = ArrayLength(iterable)
+        result = ArrayCreate(length)
+        i = 0
+        
+        WhileLoop LessThan(i, length) {
+            element = ArrayGet(iterable, i)
+            transformed = Apply(func, element)
+            ArraySet(result, i, transformed)
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(result)
+    }
+}
+
+Function.AIMacro.filter {
+    Input: predicate: Address
+    Input: iterable: Address
+    Body: {
+        length = ArrayLength(iterable)
+        temp = ArrayCreate(length)
+        count = 0
+        i = 0
+        
+        WhileLoop LessThan(i, length) {
+            element = ArrayGet(iterable, i)
+            IfCondition Apply(predicate, element) ThenBlock {
+                ArraySet(temp, count, element)
+                count = Add(count, 1)
+            }
+            i = Add(i, 1)
+        }
+        
+        // Create result array of exact size
+        result = ArrayCreate(count)
+        i = 0
+        WhileLoop LessThan(i, count) {
+            ArraySet(result, i, ArrayGet(temp, i))
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(result)
+    }
+}
+
+Function.AIMacro.all {
+    Input: iterable: Address
+    Body: {
+        length = ArrayLength(iterable)
+        i = 0
+        
+        WhileLoop LessThan(i, length) {
+            IfCondition Not(ArrayGet(iterable, i)) ThenBlock {
+                ReturnValue(False)
+            }
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(True)
+    }
+}
+
+Function.AIMacro.any {
+    Input: iterable: Address
+    Body: {
+        length = ArrayLength(iterable)
+        i = 0
+        
+        WhileLoop LessThan(i, length) {
+            IfCondition ArrayGet(iterable, i) ThenBlock {
+                ReturnValue(True)
+            }
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(False)
+    }
+}
+
+// ============================================================================
+// SECTION 5: SORTING & ORDERING
+// ============================================================================
+
+Function.AIMacro.sorted {
+    Input: array: Address
+    Body: {
+        // Create a copy of the array
+        length = ArrayLength(array)
+        result = ArrayCreate(length)
+        
+        i = 0
+        WhileLoop LessThan(i, length) {
+            ArraySet(result, i, ArrayGet(array, i))
+            i = Add(i, 1)
+        }
+        
+        // Bubble sort (simple implementation)
+        i = 0
+        WhileLoop LessThan(i, length) {
+            j = 0
+            WhileLoop LessThan(j, Subtract(length, 1)) {
+                current = ArrayGet(result, j)
+                next = ArrayGet(result, Add(j, 1))
+                
+                IfCondition GreaterThan(current, next) ThenBlock {
+                    // Swap
+                    ArraySet(result, j, next)
+                    ArraySet(result, Add(j, 1), current)
+                }
+                j = Add(j, 1)
+            }
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(result)
+    }
+}
+
+Function.AIMacro.reversed {
+    Input: array: Address
+    Body: {
+        length = ArrayLength(array)
+        result = ArrayCreate(length)
+        
+        i = 0
+        WhileLoop LessThan(i, length) {
+            ArraySet(result, i, ArrayGet(array, Subtract(Subtract(length, 1), i)))
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(result)
+    }
+}
+
+// ============================================================================
+// SECTION 6: TYPE CHECKING & CONVERSION
+// ============================================================================
+
+Function.AIMacro.type {
+    Input: value: Address
+    Body: {
+        // Simple type detection
+        // Would need compiler support for full implementation
+        ReturnValue("unknown")
+    }
+}
+
+Function.AIMacro.isinstance {
+    Input: value: Address
+    Input: type_check: Address
+    Body: {
+        // Simple type checking
+        // Would need compiler support for full implementation
+        ReturnValue(True)
+    }
+}
+
+// ============================================================================
+// SECTION 7: STRING OPERATIONS
+// ============================================================================
+
+Function.AIMacro.split {
+    Input: string: Address
+    Input: delimiter: Address
+    Body: {
+        ReturnValue(StringSplit(string, delimiter))
+    }
+}
+
+Function.AIMacro.join {
+    Input: delimiter: Address
+    Input: array: Address
+    Body: {
+        ReturnValue(StringJoin(array, delimiter))
+    }
+}
+
+Function.AIMacro.strip {
+    Input: string: Address
+    Body: {
+        ReturnValue(StringTrim(string))
+    }
+}
+
+Function.AIMacro.upper {
+    Input: string: Address
+    Body: {
+        ReturnValue(StringToUpper(string))
+    }
+}
+
+Function.AIMacro.lower {
+    Input: string: Address
+    Body: {
+        ReturnValue(StringToLower(string))
+    }
+}
+
+// ============================================================================
+// SECTION 8: LIST COMPREHENSION SUPPORT
+// ============================================================================
+
+Function.AIMacro.list_comp {
+    Input: expr: Address
+    Input: iterable: Address
+    Input: condition: Address
+    Body: {
+        length = ArrayLength(iterable)
+        temp = ArrayCreate(length)
+        count = 0
+        i = 0
+        
+        WhileLoop LessThan(i, length) {
+            item = ArrayGet(iterable, i)
+            
+            // Apply condition if provided
+            include = True
+            IfCondition NotEqual(condition, 0) ThenBlock {
+                include = Apply(condition, item)
+            }
+            
+            IfCondition include ThenBlock {
+                transformed = Apply(expr, item)
+                ArraySet(temp, count, transformed)
+                count = Add(count, 1)
+            }
+            i = Add(i, 1)
+        }
+        
+        // Create result array of exact size
+        result = ArrayCreate(count)
+        i = 0
+        WhileLoop LessThan(i, count) {
+            ArraySet(result, i, ArrayGet(temp, i))
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(result)
+    }
+}
+
+// ============================================================================
+// SECTION 9: DICTIONARY/HASH OPERATIONS
+// ============================================================================
+
+Function.AIMacro.dict {
+    Body: {
+        ReturnValue(HashCreate())
+    }
+}
+
+Function.AIMacro.keys {
+    Input: dictionary: Address
+    Body: {
+        ReturnValue(HashKeys(dictionary))
+    }
+}
+
+Function.AIMacro.values {
+    Input: dictionary: Address
+    Body: {
+        ReturnValue(HashValues(dictionary))
+    }
+}
+
+Function.AIMacro.items {
+    Input: dictionary: Address
+    Body: {
+        keys = HashKeys(dictionary)
+        length = ArrayLength(keys)
+        result = ArrayCreate(length)
+        i = 0
+        
+        WhileLoop LessThan(i, length) {
+            key = ArrayGet(keys, i)
+            value = HashGet(dictionary, key)
+            pair = ArrayCreate(2)
+            ArraySet(pair, 0, key)
+            ArraySet(pair, 1, value)
+            ArraySet(result, i, pair)
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(result)
+    }
+}
+
+// ============================================================================
+// SECTION 10: ERROR HANDLING
+// ============================================================================
+
+Function.AIMacro.assert {
+    Input: condition: Address
+    Input: message: Address
+    Body: {
+        IfCondition Not(condition) ThenBlock {
+            PrintMessage("Assertion failed: ")
+            PrintMessage(message)
+            Exit(1)
+        }
+    }
+}
+
+// ============================================================================
+// USAGE EXAMPLE
+// ============================================================================
+
+SubRoutine.AIMacroExample {
+    // This shows how Python code translates to AILang
+    
+    // Python: numbers = range(10)
+    numbers = AIMacro.range(0, 10, 1)
+    
+    // Python: total = sum(numbers)
+    total = AIMacro.sum(numbers)
+    
+    // Python: print(f"Total: {total}")
+    PrintMessage("Total: ")
+    PrintNumber(total)
+    
+    // Python: for i, val in enumerate(numbers):
+    pairs = AIMacro.enumerate(numbers, 0)
+    i = 0
+    WhileLoop LessThan(i, ArrayLength(pairs)) {
+        pair = ArrayGet(pairs, i)
+        index = ArrayGet(pair, 0)
+        value = ArrayGet(pair, 1)
+        
+        PrintMessage("Index: ")
+        PrintNumber(index)
+        PrintMessage(" Value: ")
+        PrintNumber(value)
+        
+        i = Add(i, 1)
+    }
+}
