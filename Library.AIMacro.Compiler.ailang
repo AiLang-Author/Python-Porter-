@@ -1,0 +1,453 @@
+// Library.AIMacro.Compiler.ailang
+// Special library for bootstrapping the AILang compiler into AILang itself
+// Provides Python compiler-specific constructs
+
+// ============================================================================
+// SECTION 1: CLASS/OBJECT SUPPORT
+// ============================================================================
+
+// Python classes become AILang structures with function tables
+Function.AIMacro.class_create {
+    Input: class_name: Address
+    Input: base_class: Address
+    Body: {
+        // Create class structure
+        class_obj = HashCreate()
+        HashSet(class_obj, "__name__", class_name)
+        HashSet(class_obj, "__base__", base_class)
+        HashSet(class_obj, "__methods__", HashCreate())
+        HashSet(class_obj, "__dict__", HashCreate())
+        ReturnValue(class_obj)
+    }
+}
+
+Function.AIMacro.instance_create {
+    Input: class_obj: Address
+    Body: {
+        // Create instance of class
+        instance = HashCreate()
+        HashSet(instance, "__class__", class_obj)
+        HashSet(instance, "__dict__", HashCreate())
+        
+        // Call __init__ if exists
+        methods = HashGet(class_obj, "__methods__")
+        init_func = HashGet(methods, "__init__")
+        IfCondition NotEqual(init_func, 0) ThenBlock {
+            Apply(init_func, instance)
+        }
+        
+        ReturnValue(instance)
+    }
+}
+
+Function.AIMacro.method_call {
+    Input: instance: Address
+    Input: method_name: Address
+    Input: args: Address
+    Body: {
+        // Get method from class
+        class_obj = HashGet(instance, "__class__")
+        methods = HashGet(class_obj, "__methods__")
+        method = HashGet(methods, method_name)
+        
+        IfCondition EqualTo(method, 0) ThenBlock {
+            PrintMessage("AttributeError: No method ")
+            PrintMessage(method_name)
+            Exit(1)
+        }
+        
+        // Call with instance as first argument (self)
+        full_args = ArrayCreate(Add(ArrayLength(args), 1))
+        ArraySet(full_args, 0, instance)
+        
+        i = 0
+        WhileLoop LessThan(i, ArrayLength(args)) {
+            ArraySet(full_args, Add(i, 1), ArrayGet(args, i))
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(Apply(method, full_args))
+    }
+}
+
+// ============================================================================
+// SECTION 2: AST NODE SUPPORT
+// ============================================================================
+
+Function.AIMacro.ASTNode {
+    Input: node_type: Address
+    Input: line: Integer
+    Input: column: Integer
+    Body: {
+        node = HashCreate()
+        HashSet(node, "type", node_type)
+        HashSet(node, "line", line)
+        HashSet(node, "column", column)
+        HashSet(node, "children", ArrayCreate(0))
+        ReturnValue(node)
+    }
+}
+
+Function.AIMacro.ASTNode.add_child {
+    Input: parent: Address
+    Input: child: Address
+    Body: {
+        children = HashGet(parent, "children")
+        ArrayAppend(children, child)
+    }
+}
+
+Function.AIMacro.ASTNode.get_type {
+    Input: node: Address
+    Body: {
+        ReturnValue(HashGet(node, "type"))
+    }
+}
+
+// Common AST node constructors
+Function.AIMacro.AST.Program {
+    Input: declarations: Address
+    Body: {
+        node = AIMacro.ASTNode("Program", 0, 0)
+        HashSet(node, "declarations", declarations)
+        ReturnValue(node)
+    }
+}
+
+Function.AIMacro.AST.Function {
+    Input: name: Address
+    Input: params: Address
+    Input: body: Address
+    Input: line: Integer
+    Input: column: Integer
+    Body: {
+        node = AIMacro.ASTNode("Function", line, column)
+        HashSet(node, "name", name)
+        HashSet(node, "params", params)
+        HashSet(node, "body", body)
+        ReturnValue(node)
+    }
+}
+
+Function.AIMacro.AST.Identifier {
+    Input: name: Address
+    Input: line: Integer
+    Input: column: Integer
+    Body: {
+        node = AIMacro.ASTNode("Identifier", line, column)
+        HashSet(node, "name", name)
+        ReturnValue(node)
+    }
+}
+
+Function.AIMacro.AST.Number {
+    Input: value: Integer
+    Input: line: Integer
+    Input: column: Integer
+    Body: {
+        node = AIMacro.ASTNode("Number", line, column)
+        HashSet(node, "value", value)
+        ReturnValue(node)
+    }
+}
+
+// ============================================================================
+// SECTION 3: TOKEN SUPPORT
+// ============================================================================
+
+Function.AIMacro.Token {
+    Input: token_type: Address
+    Input: value: Address
+    Input: line: Integer
+    Input: column: Integer
+    Body: {
+        token = HashCreate()
+        HashSet(token, "type", token_type)
+        HashSet(token, "value", value)
+        HashSet(token, "line", line)
+        HashSet(token, "column", column)
+        ReturnValue(token)
+    }
+}
+
+Function.AIMacro.TokenType {
+    Body: {
+        // Create enum-like structure for token types
+        types = HashCreate()
+        HashSet(types, "IDENTIFIER", 1)
+        HashSet(types, "NUMBER", 2)
+        HashSet(types, "STRING", 3)
+        HashSet(types, "FUNCTION", 4)
+        HashSet(types, "IF", 5)
+        HashSet(types, "WHILE", 6)
+        HashSet(types, "RETURN", 7)
+        HashSet(types, "LPAREN", 8)
+        HashSet(types, "RPAREN", 9)
+        HashSet(types, "LBRACE", 10)
+        HashSet(types, "RBRACE", 11)
+        HashSet(types, "COMMA", 12)
+        HashSet(types, "SEMICOLON", 13)
+        HashSet(types, "EOF", 14)
+        // Add more as needed
+        ReturnValue(types)
+    }
+}
+
+// ============================================================================
+// SECTION 4: LEXER SUPPORT
+// ============================================================================
+
+Function.AIMacro.Lexer.create {
+    Input: source: Address
+    Body: {
+        lexer = HashCreate()
+        HashSet(lexer, "source", source)
+        HashSet(lexer, "position", 0)
+        HashSet(lexer, "line", 1)
+        HashSet(lexer, "column", 1)
+        HashSet(lexer, "tokens", ArrayCreate(0))
+        ReturnValue(lexer)
+    }
+}
+
+Function.AIMacro.Lexer.current_char {
+    Input: lexer: Address
+    Body: {
+        source = HashGet(lexer, "source")
+        position = HashGet(lexer, "position")
+        
+        IfCondition GreaterEqual(position, StringLength(source)) ThenBlock {
+            ReturnValue(0)
+        }
+        
+        ReturnValue(StringCharAt(source, position))
+    }
+}
+
+Function.AIMacro.Lexer.advance {
+    Input: lexer: Address
+    Body: {
+        position = HashGet(lexer, "position")
+        HashSet(lexer, "position", Add(position, 1))
+        
+        // Update line/column
+        char = AIMacro.Lexer.current_char(lexer)
+        IfCondition EqualTo(char, 10) ThenBlock {  // Newline
+            line = HashGet(lexer, "line")
+            HashSet(lexer, "line", Add(line, 1))
+            HashSet(lexer, "column", 1)
+        } ElseBlock {
+            column = HashGet(lexer, "column")
+            HashSet(lexer, "column", Add(column, 1))
+        }
+    }
+}
+
+// ============================================================================
+// SECTION 5: PARSER SUPPORT
+// ============================================================================
+
+Function.AIMacro.Parser.create {
+    Input: tokens: Address
+    Body: {
+        parser = HashCreate()
+        HashSet(parser, "tokens", tokens)
+        HashSet(parser, "position", 0)
+        ReturnValue(parser)
+    }
+}
+
+Function.AIMacro.Parser.current_token {
+    Input: parser: Address
+    Body: {
+        tokens = HashGet(parser, "tokens")
+        position = HashGet(parser, "position")
+        
+        IfCondition GreaterEqual(position, ArrayLength(tokens)) ThenBlock {
+            // Return EOF token
+            ReturnValue(AIMacro.Token("EOF", "", 0, 0))
+        }
+        
+        ReturnValue(ArrayGet(tokens, position))
+    }
+}
+
+Function.AIMacro.Parser.consume {
+    Input: parser: Address
+    Input: expected_type: Address
+    Body: {
+        token = AIMacro.Parser.current_token(parser)
+        token_type = HashGet(token, "type")
+        
+        IfCondition NotEqual(token_type, expected_type) ThenBlock {
+            PrintMessage("Parse error: Expected ")
+            PrintMessage(expected_type)
+            PrintMessage(" but got ")
+            PrintMessage(token_type)
+            Exit(1)
+        }
+        
+        position = HashGet(parser, "position")
+        HashSet(parser, "position", Add(position, 1))
+        
+        ReturnValue(token)
+    }
+}
+
+// ============================================================================
+// SECTION 6: PYTHON BUILT-IN EQUIVALENTS
+// ============================================================================
+
+Function.AIMacro.isinstance {
+    Input: obj: Address
+    Input: class_type: Address
+    Body: {
+        // Check if obj is instance of class_type
+        obj_class = HashGet(obj, "__class__")
+        
+        IfCondition EqualTo(obj_class, class_type) ThenBlock {
+            ReturnValue(True)
+        }
+        
+        // Check inheritance chain
+        base = HashGet(obj_class, "__base__")
+        WhileLoop NotEqual(base, 0) {
+            IfCondition EqualTo(base, class_type) ThenBlock {
+                ReturnValue(True)
+            }
+            base = HashGet(base, "__base__")
+        }
+        
+        ReturnValue(False)
+    }
+}
+
+Function.AIMacro.hasattr {
+    Input: obj: Address
+    Input: attr_name: Address
+    Body: {
+        obj_dict = HashGet(obj, "__dict__")
+        ReturnValue(HashExists(obj_dict, attr_name))
+    }
+}
+
+Function.AIMacro.getattr {
+    Input: obj: Address
+    Input: attr_name: Address
+    Input: default: Address
+    Body: {
+        obj_dict = HashGet(obj, "__dict__")
+        
+        IfCondition HashExists(obj_dict, attr_name) ThenBlock {
+            ReturnValue(HashGet(obj_dict, attr_name))
+        }
+        
+        ReturnValue(default)
+    }
+}
+
+Function.AIMacro.setattr {
+    Input: obj: Address
+    Input: attr_name: Address
+    Input: value: Address
+    Body: {
+        obj_dict = HashGet(obj, "__dict__")
+        HashSet(obj_dict, attr_name, value)
+    }
+}
+
+// ============================================================================
+// SECTION 7: ERROR HANDLING
+// ============================================================================
+
+Function.AIMacro.raise_error {
+    Input: error_type: Address
+    Input: message: Address
+    Body: {
+        PrintMessage(error_type)
+        PrintMessage(": ")
+        PrintMessage(message)
+        PrintMessage("\n")
+        
+        // Stack trace would go here
+        Exit(1)
+    }
+}
+
+Function.AIMacro.SyntaxError {
+    Input: message: Address
+    Input: line: Integer
+    Input: column: Integer
+    Body: {
+        PrintMessage("SyntaxError at line ")
+        PrintNumber(line)
+        PrintMessage(", column ")
+        PrintNumber(column)
+        PrintMessage(": ")
+        PrintMessage(message)
+        Exit(1)
+    }
+}
+
+// ============================================================================
+// SECTION 8: ENUM SUPPORT (for TokenType, etc.)
+// ============================================================================
+
+Function.AIMacro.Enum.create {
+    Input: name: Address
+    Input: values: Address
+    Body: {
+        enum = HashCreate()
+        HashSet(enum, "__name__", name)
+        
+        i = 0
+        WhileLoop LessThan(i, ArrayLength(values)) {
+            value_name = ArrayGet(values, i)
+            HashSet(enum, value_name, i)
+            i = Add(i, 1)
+        }
+        
+        ReturnValue(enum)
+    }
+}
+
+Function.AIMacro.Enum.auto {
+    Body: {
+        // Global counter for auto() in enums
+        // This would need compiler support for static variables
+        ReturnValue(0)
+    }
+}
+
+// ============================================================================
+// USAGE EXAMPLE: Mini Lexer in AIMacro/AILang
+// ============================================================================
+
+SubRoutine.CompilerBootstrapExample {
+    // Create a simple lexer
+    source = "Function add(x, y) { return x + y; }"
+    lexer = AIMacro.Lexer.create(source)
+    
+    // Tokenize
+    WhileLoop True {
+        char = AIMacro.Lexer.current_char(lexer)
+        
+        IfCondition EqualTo(char, 0) ThenBlock {
+            // EOF
+            BreakLoop
+        }
+        
+        // Skip whitespace
+        IfCondition EqualTo(char, 32) ThenBlock {
+            AIMacro.Lexer.advance(lexer)
+            ContinueLoop
+        }
+        
+        // Identify tokens...
+        // (simplified for example)
+        
+        AIMacro.Lexer.advance(lexer)
+    }
+    
+    PrintMessage("Lexer example complete")
+}
